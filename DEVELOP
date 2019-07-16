@@ -2,3 +2,10 @@ to build,
 
 cd x.xx-y.y.y
 DOCKER_BUILDKIT=1 docker build -t lmntal:x.xx-y.y.y .
+
+
+to push,
+
+docker tag lmntal:x.xx-y.y.y lmntal/lmntal:x.xx-y.y.y
+docker tag lmntal:x.xx-y.y.y lmntal/lmntal:latest
+docker push lmntal/lmntal
