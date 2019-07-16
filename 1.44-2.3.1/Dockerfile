@@ -1,50 +1,55 @@
-FROM buildpack-deps:stretch-curl
+### LMNtal Dockerfile
+### lmntal-compiler: 1.44
+### slim: 2.3.1
 
-ENV LMNTAL_HOME /usr/lmntal
-ENV PATH /usr/local/bin:/usr/lmntal/bin:$PATH
+# LMNtal compiler build
 
-ENV LANG C.UTF-8
+FROM frekele/ant:1.10.3-jdk8 AS lmntal-builder
+RUN cd / && \
+    wget https://github.com/lmntal/lmntal-compiler/archive/v1.44.tar.gz -O lmntal-compiler.tar.gz && \
+    tar xvzf lmntal-compiler.tar.gz && \
+    cd lmntal-compiler-1.44 && \
+    ant && \
+    ant archive && \
+    mkdir /lmntal-build && \
+    cd /lmntal-build && \
+    tar xvzf /lmntal-compiler-1.44/lmntal.tgz
 
-RUN set -ex; \
-        apt-get update \
-        && apt-get install -y --no-install-recommends \
-            ant \
-            autoconf \
-            automake \
-            bison \
-            flex \
-            g++ \
-            gcc \
-            openjdk-8-jdk-headless \
-            libtool \
-            make \
-            re2c \
-            ruby \
-        \
-        && wget -O lmntal.tar.gz "https://github.com/lmntal/lmntal-compiler/archive/v1.44.tar.gz" \
-        && wget -O slim.tar.gz "https://github.com/lmntal/slim/archive/v2.3.1.tar.gz" \
-        && tar -xzf lmntal.tar.gz \
-        && mv lmntal-compiler-1.44 "$LMNTAL_HOME" \
-        && rm lmntal.tar.gz \
-        && export SLIM_HOME="/tmp/slim" \
-        && tar -xzf slim.tar.gz \
-        && mv slim-2.3.1 "$SLIM_HOME" \
-        && rm slim.tar.gz \
-        \
-        && cd "$LMNTAL_HOME" \
-        && ant \
-        \
-        && cd "$SLIM_HOME" \
-        && aclocal \
-        && autoheader \
-        && automake --add-missing \
-        && autoreconf \
-        && ./configure --prefix=/usr/local \
-        && make install \
-        \
-        && ldconfig; \
-        \
-        rm -rf /var/lib/apt/lists/*
 
+# slim build
+
+FROM openjdk:8-jre-slim-stretch AS slim-builder
+ENV LMNTAL_HOME=/usr/local
+RUN apt update && \
+    apt install -y automake bison build-essential ca-certificates flex libtool re2c ruby wget --no-install-recommends && \
+    wget https://github.com/lmntal/slim/archive/v2.3.1.tar.gz -O slim.tar.gz && \
+    rm -rf /var/lib/apt/lists/* && \
+    tar xzf slim.tar.gz && \
+    cd slim-2.3.1 && \
+    aclocal && \
+    autoheader && \
+    automake --add-missing && \
+    autoreconf && \
+    ./configure --prefix=/slim-build
+COPY --from=lmntal-builder /lmntal-build/* /usr/local/
+RUN cd /slim-2.3.1 && \
+    make && \
+    make install
+
+
+# Runtime Container
+
+FROM openjdk:8-jre-slim-stretch
+
+ENV LANG=C.UTF-8
+ENV LMNTAL_HOME=/usr/local
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+RUN apt update && \
+    apt install -y libgomp1 --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=lmntal-builder /lmntal-build/* /usr/local/
+COPY --from=slim-builder /slim-build/* /usr/local/
 
 CMD ["/bin/sh", "-c", "lmntal --stdin-lmn | slim -"]
