@@ -48,4 +48,4 @@ RUN apt update && \
 COPY --from=lmntal-builder /lmntal-build/* /usr/local/
 COPY --from=slim-builder /slim-build/* /usr/local/
 
-CMD ["/bin/sh", "-c", "lmntal --stdin-lmn | slim -"]
+CMD ["/bin/sh", "-c", "lmntal --stdin-lmn --slimcode --hl-opt | slim --hl --hide-ruleset -"]
