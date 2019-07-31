@@ -1,18 +1,23 @@
 # Usage
 ## Exec program from stdin
-```
+```sh
 $ docker run --rm -it lmntal/lmntal
 ```
-Then write your LMNtal program to stdin, and put `C-d`,
+Then write your LMNtal program to stdin, and put `C-d`.
 
 ## Exec from file
 Create .lmn file containing LMNtal program.
-```
+```sh
 $ cd #where program exists
 $ docker run --rm -itv $PWD:/mnt slim [options] /mnt/program.lmn
 ```
 or
+```sh
+$ cat program.lmn | docker run --rm -i lmntal #RT(runtime) mode
+$ cat program.lmn | docker run --rm -i lmntal sh -c 'lmntal --stdin-lmn --slimcode --hl-opt | slim --nd --hl -' #MC(model checking) mode
 ```
+or
+```sh
 $ cd #where program exists
 $ docker rum --rm -itv $PWD:/mnt bash
 ```
